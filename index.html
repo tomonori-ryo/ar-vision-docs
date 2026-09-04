@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARペースセッター ドキュメント</title>
+<style>
+  :root{
+    --paper: #F6F4EF;
+    --paper-raised: #FFFFFF;
+    --ink: #1C2027;
+    --ink-soft: #545B68;
+    --line: #DBD7CC;
+    --accent: #2456A6;
+    --accent-soft: #E7EDF7;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Hiragino Sans","Yu Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  #app{
+    max-width:960px;
+    margin:0 auto;
+    padding:0 24px 80px;
+  }
+
+  header{
+    padding:48px 0 24px;
+    border-bottom:1px solid var(--line);
+  }
+  header h1{
+    font-size:28px;
+    font-weight:700;
+    margin:0 0 8px;
+    letter-spacing:0.01em;
+  }
+  header p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:14px;
+    line-height:1.6;
+  }
+
+  .nav-stack{
+    position:sticky;
+    top:0;
+    z-index:10;
+    background:var(--paper);
+    border-bottom:1px solid var(--line);
+  }
+
+  nav.tab-row{
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+  }
+  nav#docTabs{ padding:16px 0 8px; }
+  nav#catTabs{
+    padding:0 0 8px;
+    display:none;
+  }
+  nav#catTabs.is-visible{ display:flex; }
+  nav#revTabs{ padding:0 0 16px; }
+
+  nav button{
+    flex:0 0 auto;
+    border:1px solid transparent;
+    background:none;
+    color:var(--ink-soft);
+    padding:6px 12px;
+    border-radius:4px;
+    cursor:pointer;
+  }
+  nav#docTabs button{
+    font-size:14px;
+    font-weight:600;
+  }
+  nav#catTabs button{
+    font-size:13px;
+    font-weight:600;
+  }
+  nav#revTabs button{
+    font-size:13px;
+    font-family:var(--mono);
+  }
+  nav button:hover{
+    background:var(--accent-soft);
+    color:var(--ink);
+  }
+  nav#docTabs button.active{
+    background:var(--accent);
+    color:#fff;
+  }
+  nav#catTabs button.active{
+    border-color:var(--accent);
+    color:var(--accent);
+    background:var(--accent-soft);
+  }
+  nav#revTabs button.active{
+    border-color:var(--accent);
+    color:var(--accent);
+    background:var(--accent-soft);
+  }
+  nav#revTabs button.latest::after{
+    content:" ・最新";
+  }
+
+  main{ padding-top:32px; }
+  .slide{ display:none; }
+  .slide.active{ display:block; }
+
+  .slide-meta{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:baseline;
+    gap:12px;
+    margin-bottom:8px;
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .slide > h2{
+    font-size:24px;
+    margin:0 0 12px;
+  }
+  .slide .summary{
+    background:var(--accent-soft);
+    border-left:3px solid var(--accent);
+    padding:14px 16px;
+    font-size:14px;
+    line-height:1.8;
+    margin-bottom:32px;
+    color:var(--ink);
+  }
+
+  .section{
+    padding:28px 0 28px 1.25em;
+    border-top:1px solid var(--line);
+  }
+  .section:first-of-type{ border-top:none; }
+  .section .body{
+    font-size:15px;
+    line-height:1.9;
+    color:var(--ink);
+    white-space:pre-wrap;
+  }
+  .section img{
+    display:block;
+    max-width:100%;
+    height:auto;
+    margin-top:16px;
+    border:1px solid var(--line);
+    border-radius:2px;
+  }
+
+  .md-body{
+    font-size:15px;
+    line-height:1.9;
+    color:var(--ink);
+    padding-left:1.25em;
+  }
+  .md-body > :first-child{ margin-top:0; }
+  .md-body h1{
+    font-size:26px;
+    margin:0 0 16px;
+    line-height:1.35;
+  }
+  .md-body h2{
+    font-size:20px;
+    margin:36px 0 12px;
+    padding:10px 0 10px 14px;
+    border-left:3px solid var(--accent);
+  }
+  .md-body h3{
+    font-size:17px;
+    margin:28px 0 10px;
+    padding:6px 0 6px 14px;
+    border-left:3px solid var(--accent);
+  }
+  .md-body h4,
+  .md-body h5{
+    font-size:15px;
+    margin:22px 0 8px;
+    padding-left:14px;
+    border-left:2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .section h3{
+    font-size:16px;
+    margin:0 0 12px;
+    padding:6px 0 6px 14px;
+    border-left:3px solid var(--accent);
+  }
+
+  .md-body :is(h1,h2,h3,h4,h5),
+  .section h3{
+    position:relative;
+    scroll-margin-top:120px;
+  }
+  .heading-anchor{
+    position:absolute;
+    left:-1.15em;
+    top:0;
+    width:1em;
+    color:var(--accent);
+    text-decoration:none;
+    font-weight:600;
+    opacity:0;
+    transition:opacity .15s ease;
+  }
+  .md-body :is(h1,h2,h3,h4,h5):hover .heading-anchor,
+  .md-body :is(h1,h2,h3,h4,h5):focus-within .heading-anchor,
+  .section h3:hover .heading-anchor,
+  .section h3:focus-within .heading-anchor,
+  .heading-anchor:focus-visible{
+    opacity:1;
+  }
+  .heading-anchor:hover,
+  .heading-anchor:focus-visible{
+    color:var(--ink);
+  }
+  @media (max-width:600px){
+    .heading-anchor{
+      position:static;
+      display:inline-block;
+      margin-right:0.35em;
+      opacity:0.45;
+      width:auto;
+      left:auto;
+    }
+  }
+  .md-body p{ margin:0 0 14px; }
+  .md-body ul,
+  .md-body ol{
+    margin:0 0 16px;
+    padding-left:1.4em;
+  }
+  .md-body li{ margin:0.25em 0; }
+  .md-body blockquote{
+    margin:0 0 16px;
+    padding:12px 16px;
+    border-left:3px solid var(--accent);
+    background:var(--accent-soft);
+    color:var(--ink);
+  }
+  .md-body blockquote p{ margin:0 0 8px; }
+  .md-body blockquote p:last-child{ margin-bottom:0; }
+  .md-body table{
+    width:100%;
+    border-collapse:collapse;
+    margin:0 0 20px;
+    font-size:14px;
+  }
+  .md-body th,
+  .md-body td{
+    border:1px solid var(--line);
+    padding:10px 12px;
+    vertical-align:top;
+    text-align:left;
+  }
+  .md-body th{
+    background:var(--accent-soft);
+    font-weight:600;
+  }
+  .md-body img{
+    display:block;
+    max-width:100%;
+    height:auto;
+    margin:16px 0;
+    border:1px solid var(--line);
+    border-radius:2px;
+  }
+  .md-body a{ color:var(--accent); }
+  .md-body a[href="#doc-調査書"]{
+    cursor:pointer;
+    text-decoration:underline;
+  }
+  .md-body hr{
+    border:none;
+    border-top:1px solid var(--line);
+    margin:28px 0;
+  }
+  .md-body code{
+    font-family:var(--mono);
+    font-size:0.92em;
+    background:rgba(0,0,0,0.05);
+    padding:0.1em 0.35em;
+    border-radius:3px;
+  }
+  .md-status{
+    color:var(--ink-soft);
+    font-size:14px;
+    padding:24px 0;
+  }
+  .md-status.error{ color:#8B2E2E; }
+
+  .arrows{
+    position:fixed;
+    bottom:24px;
+    right:24px;
+    display:flex;
+    gap:8px;
+  }
+  .arrows button{
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:var(--paper-raised);
+    color:var(--ink);
+    font-size:18px;
+    cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  }
+  .arrows button:hover{
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+  .arrows button:disabled{
+    opacity:0.3;
+    cursor:default;
+  }
+  .arrows button:focus-visible,
+  nav button:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+
+  @media (max-width:600px){
+    header{ padding:32px 0 20px; }
+    header h1{ font-size:22px; }
+    .slide > h2{ font-size:20px; }
+    .md-body h1{ font-size:22px; }
+    .arrows{ right:16px; bottom:16px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <h1>ARペースセッター ドキュメント</h1>
+    <p>大分類 →（種別）→ バージョンの順に切り替えて閲覧できます。要件定義書・基本設計書のみ種別タブ（スマホアプリ / ARグラス）があります。最新版には「最新」の表示があります。</p>
+  </header>
+
+  <div class="nav-stack">
+    <nav id="docTabs" class="tab-row" aria-label="大分類"></nav>
+    <nav id="catTabs" class="tab-row" aria-label="種別"></nav>
+    <nav id="revTabs" class="tab-row" aria-label="バージョン"></nav>
+  </div>
+  <main id="slides"></main>
+
+  <div class="arrows">
+    <button id="prevBtn" aria-label="前のバージョン">←</button>
+    <button id="nextBtn" aria-label="次のバージョン">→</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+/* =========================================================
+   編集するのは DOCS だけです。
+
+   大分類:
+   {
+     hasCategory: false,
+     versions: [ { version, date, title, summary, sections|markdown } ]
+   }
+   または
+   {
+     hasCategory: true,
+     categories: {
+       "スマホアプリ": { versions: [...] },
+       "ARグラス": { versions: [...] }
+     }
+   }
+
+   バージョン1件:
+   - sections: [{ heading, body, image }]  … 従来どおり
+   - markdown: "企画書.md"                 … Markdownファイル読込（任意）
+   ========================================================= */
+
+const DOCS = {
+  "企画書": {
+    hasCategory: false,
+    versions: [
+      {
+        version: "v1",
+        date: "2026-09-02",
+        title: "AR Vision 企画書",
+        summary: "次世代ARランニング支援システム「AR Vision」の企画書（チームA / KANNAGI）。",
+        markdown: "企画書.md"
+      }
+    ]
+  },
+
+  "調査書": {
+    hasCategory: false,
+    versions: [
+      {
+        version: "v1",
+        date: "2026-09-02",
+        title: "AR Vision 調査報告書",
+        summary: "生理学的根拠・市場転換点・競合分析をまとめた調査報告書。",
+        markdown: "調査書.md"
+      }
+    ]
+  },
+
+  "要件定義書": {
+    hasCategory: true,
+    categories: {
+      "スマホアプリ": {
+        versions: [
+          {
+            version: "v1",
+            date: "2026-09-04",
+            title: "スマホアプリ側 要件定義書",
+            summary: "AR Visionのうちスマホアプリ側のUI・コネクティビティ・データ管理に関わる要件。ウォーターフォール初版。",
+            markdown: "要件定義書_スマホアプリ.md"
+          }
+        ]
+      },
+      "ARグラス": {
+        versions: [
+          {
+            version: "v1",
+            date: "2026-09-04",
+            title: "ARグラス側 要件定義書",
+            summary: "AR VisionのうちARグラス側の体験・表示に関わる要件。アジャイル初版（詳細数値は基本設計書側で定義）。",
+            markdown: "要件定義書_ARグラス.md"
+          }
+        ]
+      }
+    }
+  },
+
+  "基本設計書": {
+    hasCategory: true,
+    categories: {
+      "スマホアプリ": {
+        versions: [
+          {
+            version: "v1",
+            date: "2026-09-02",
+            title: "基本設計 - スマホアプリ",
+            summary: "スマホアプリ側の役割・画面・データ連携の基本設計初版です。",
+            sections: [
+              {
+                heading: "概要",
+                body: "・役割：GPS計測、目標ペース設定、セッション管理、グラスへの描画指示\n・対象ユーザー：ペース走・レース対策をするランナー\n・利用シーン：走前設定、走行中の接続監視、走後サマリー",
+                image: ""
+              },
+              {
+                heading: "システム構成上の位置づけ",
+                body: "1. スマホアプリ：GPS・目標ペース設定・セッション管理・演算\n2. Apple Watch（任意）：心拍・ピッチ等の計測補助\n3. ARグラス：表示端末として映像/HUDを投影\n4. 連携：Bluetooth を基本としたリアルタイム同期",
+                image: ""
+              },
+              {
+                heading: "画面・表示方針",
+                body: "・走前：目標設定、Readyチェック、権限確認\n・走行中：誤操作防止ガード、接続状態の監視\n・走後：平均ペース、シンクロ率、差分推移のサマリー\n・危険時（GPSロスト等）は表示を簡潔化しアラートを優先",
+                image: ""
+              }
+            ]
+          }
+        ]
+      },
+      "ARグラス": {
+        versions: [
+          {
+            version: "v1",
+            date: "2026-09-04",
+            title: "ARグラス側 基本設計書",
+            summary: "要件定義書（ARグラス側）の機能を、Unity（C#）＋ARKitの構成でどう実現するかの粗い役割分担。アジャイル初版。",
+            markdown: "基本設計書_ARグラス.md"
+          }
+        ]
+      }
+    }
+  }
+};
+
+/* =========================================================
+   以下、描画ロジック（通常は編集不要）
+   ========================================================= */
+
+const DOC_KEYS = Object.keys(DOCS);
+
+const docTabsEl = document.getElementById('docTabs');
+const catTabsEl = document.getElementById('catTabs');
+const revTabsEl = document.getElementById('revTabs');
+const slidesEl = document.getElementById('slides');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+const mdCache = new Map();
+let docKey = DOC_KEYS[0];
+let catKey = null;
+let verIndex = 0;
+let renderToken = 0;
+
+marked.setOptions({ gfm: true, breaks: false });
+
+function currentDoc(){
+  return DOCS[docKey];
+}
+
+function categoryKeys(){
+  const doc = currentDoc();
+  if (!doc?.hasCategory) return [];
+  return Object.keys(doc.categories || {});
+}
+
+function currentVersions(){
+  const doc = currentDoc();
+  if (!doc) return [];
+  if (doc.hasCategory){
+    const cat = doc.categories?.[catKey];
+    return cat?.versions || [];
+  }
+  return doc.versions || [];
+}
+
+function latestVersionIndex(){
+  return Math.max(0, currentVersions().length - 1);
+}
+
+function selectDoc(key){
+  docKey = key;
+  const keys = categoryKeys();
+  catKey = currentDoc().hasCategory ? (keys[0] || null) : null;
+  verIndex = latestVersionIndex();
+  render();
+}
+
+function selectCategory(key){
+  catKey = key;
+  verIndex = latestVersionIndex();
+  render();
+}
+
+function selectVersion(i){
+  verIndex = i;
+  render();
+}
+
+function goToDocByLabel(label){
+  if (DOCS[label]) selectDoc(label);
+}
+
+async function loadMarkdown(path){
+  if (mdCache.has(path)) return mdCache.get(path);
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(`${path} を読み込めませんでした（${res.status}）`);
+  let text = await res.text();
+  text = text.replace(
+    /\[([^\]]*調査報告書[^\]]*)\]\(\)/g,
+    '[$1](#doc-調査書)'
+  );
+  mdCache.set(path, text);
+  return text;
+}
+
+function wireMarkdownLinks(root){
+  root.querySelectorAll('a[href="#doc-調査書"]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      goToDocByLabel('調査書');
+    });
+  });
+}
+
+function slugifyHeading(text){
+  return String(text)
+    .trim()
+    .toLowerCase()
+    .replace(/[【】「」『』（）()［］\[\]"'`]/g, '')
+    .replace(/[・、。．，,./／\\|:;!?！？]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    || 'section';
+}
+
+function addHeadingAnchors(root, prefix){
+  const used = new Map();
+  root.querySelectorAll('h1, h2, h3, h4, h5').forEach((heading) => {
+    if (heading.querySelector('.heading-anchor')) return;
+
+    const label = Array.from(heading.childNodes)
+      .filter(n => !(n.nodeType === 1 && n.classList?.contains('heading-anchor')))
+      .map(n => n.textContent || '')
+      .join('')
+      .trim();
+
+    const base = slugifyHeading(label);
+    const count = used.get(base) || 0;
+    used.set(base, count + 1);
+    const id = count === 0 ? `${prefix}-${base}` : `${prefix}-${base}-${count + 1}`;
+    heading.id = id;
+
+    const anchor = document.createElement('a');
+    anchor.className = 'heading-anchor';
+    anchor.href = `#${id}`;
+    anchor.setAttribute('aria-label', `「${label}」へのリンク`);
+    anchor.textContent = '#';
+    anchor.addEventListener('click', (e) => {
+      e.preventDefault();
+      history.replaceState(null, '', `#${id}`);
+      heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    heading.prepend(anchor);
+  });
+}
+
+/* スライド1件分の中身（sections）描画 — 既存ロジックを維持 */
+function renderSections(sectionEl, slide, anchorPrefix){
+  (slide.sections || []).forEach(sec => {
+    const wrap = document.createElement('div');
+    wrap.className = 'section';
+
+    if (sec.heading){
+      const h3 = document.createElement('h3');
+      h3.textContent = sec.heading;
+      wrap.appendChild(h3);
+    }
+    if (sec.body){
+      const body = document.createElement('div');
+      body.className = 'body';
+      body.textContent = sec.body;
+      wrap.appendChild(body);
+    }
+    if (sec.image){
+      const img = document.createElement('img');
+      img.src = sec.image;
+      img.alt = sec.heading || '';
+      wrap.appendChild(img);
+    }
+    sectionEl.appendChild(wrap);
+  });
+  addHeadingAnchors(sectionEl, anchorPrefix);
+}
+
+async function fillMarkdown(container, path, token, anchorPrefix){
+  const status = document.createElement('div');
+  status.className = 'md-status';
+  status.textContent = '読み込み中…';
+  container.appendChild(status);
+
+  try{
+    const md = await loadMarkdown(path);
+    if (token !== renderToken) return;
+    status.remove();
+    const body = document.createElement('div');
+    body.className = 'md-body';
+    body.innerHTML = marked.parse(md);
+    container.appendChild(body);
+    wireMarkdownLinks(body);
+    addHeadingAnchors(body, anchorPrefix);
+
+    if (location.hash){
+      const target = document.getElementById(location.hash.slice(1));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  } catch (err){
+    if (token !== renderToken) return;
+    status.classList.add('error');
+    status.textContent = String(err.message || err);
+  }
+}
+
+function renderSlideContent(section, slide, token, anchorPrefix){
+  const meta = document.createElement('div');
+  meta.className = 'slide-meta';
+  const bits = [docKey];
+  if (currentDoc().hasCategory && catKey) bits.push(catKey);
+  bits.push(slide.version);
+  if (slide.date) bits.push(slide.date);
+  meta.innerHTML = bits.map(b => `<span>${b}</span>`).join('');
+  section.appendChild(meta);
+
+  const h2 = document.createElement('h2');
+  h2.textContent = slide.title || '';
+  section.appendChild(h2);
+
+  if (slide.summary){
+    const summary = document.createElement('div');
+    summary.className = 'summary';
+    summary.textContent = slide.summary;
+    section.appendChild(summary);
+  }
+
+  if (slide.markdown){
+    fillMarkdown(section, slide.markdown, token, anchorPrefix);
+  } else {
+    renderSections(section, slide, anchorPrefix);
+  }
+}
+
+function render(){
+  const token = ++renderToken;
+  const doc = currentDoc();
+  const versions = currentVersions();
+  if (verIndex >= versions.length) verIndex = latestVersionIndex();
+
+  // --- 1階層目: 大分類 ---
+  docTabsEl.innerHTML = '';
+  DOC_KEYS.forEach((key) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = key;
+    if (key === docKey) btn.classList.add('active');
+    btn.setAttribute('aria-current', key === docKey ? 'page' : 'false');
+    btn.addEventListener('click', () => selectDoc(key));
+    docTabsEl.appendChild(btn);
+  });
+
+  // --- 2階層目: 種別（hasCategory のときだけ） ---
+  catTabsEl.innerHTML = '';
+  if (doc.hasCategory){
+    catTabsEl.classList.add('is-visible');
+    categoryKeys().forEach((key) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = key;
+      if (key === catKey) btn.classList.add('active');
+      btn.addEventListener('click', () => selectCategory(key));
+      catTabsEl.appendChild(btn);
+    });
+  } else {
+    catTabsEl.classList.remove('is-visible');
+  }
+
+  // --- 3階層目: バージョン ---
+  revTabsEl.innerHTML = '';
+  slidesEl.innerHTML = '';
+
+  versions.forEach((slide, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = slide.version;
+    if (i === versions.length - 1) btn.classList.add('latest');
+    if (i === verIndex) btn.classList.add('active');
+    btn.addEventListener('click', () => selectVersion(i));
+    revTabsEl.appendChild(btn);
+
+    const section = document.createElement('section');
+    section.className = 'slide' + (i === verIndex ? ' active' : '');
+    const prefix = [docKey, catKey, slide.version].filter(Boolean).join('-');
+    renderSlideContent(section, slide, token, prefix);
+    slidesEl.appendChild(section);
+  });
+
+  prevBtn.disabled = verIndex === 0 || versions.length === 0;
+  nextBtn.disabled = verIndex >= versions.length - 1;
+}
+
+prevBtn.addEventListener('click', () => {
+  if (verIndex > 0){ verIndex--; render(); }
+});
+nextBtn.addEventListener('click', () => {
+  if (verIndex < currentVersions().length - 1){ verIndex++; render(); }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && verIndex > 0){ verIndex--; render(); }
+  if (e.key === 'ArrowRight' && verIndex < currentVersions().length - 1){ verIndex++; render(); }
+});
+
+// 初期表示: 大分類の一番左
+selectDoc(DOC_KEYS[0]);
+</script>
+
+</body>
+</html>

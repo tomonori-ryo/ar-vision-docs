@@ -1,0 +1,5 @@
+.DS_Store
+.netlify
+node_modules
+# 元ファイル（base64埋め込み済み）。分割後の md + assets を正とする
+企画書 チーム  A .md
