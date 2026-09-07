@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARペースセッター ドキュメント</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon.png">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <style>
   :root{
     --paper: #F6F4EF;
@@ -36,14 +39,36 @@
     padding:48px 0 24px;
     border-bottom:1px solid var(--line);
   }
-  header h1{
+  .brand{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .brand-title-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .brand-logo{
+    flex:0 0 auto;
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    object-fit:cover;
+    display:block;
+    border:1px solid var(--line);
+    background:#1c1c1c;
+  }
+  .brand-title-row h1{
     font-size:28px;
     font-weight:700;
-    margin:0 0 8px;
+    margin:0;
     letter-spacing:0.01em;
+    line-height:1.2;
   }
   header p{
     margin:0;
+    padding-left:52px;
     color:var(--ink-soft);
     font-size:14px;
     line-height:1.6;
@@ -381,7 +406,10 @@
 
   @media (max-width:600px){
     header{ padding:32px 0 20px; }
-    header h1{ font-size:22px; }
+    .brand-title-row{ gap:10px; }
+    .brand-logo{ width:32px; height:32px; }
+    .brand-title-row h1{ font-size:22px; }
+    header p{ padding-left:42px; }
     .slide > h2{ font-size:20px; }
     .md-body h1{ font-size:22px; }
     .arrows{ right:16px; bottom:16px; }
@@ -392,8 +420,13 @@
 
 <div id="app">
   <header>
-    <h1>ARペースセッター ドキュメント</h1>
-    <p>大分類 →（種別）→ バージョンの順に切り替えて閲覧できます。要件定義書・基本設計書のみ種別タブ（スマホアプリ / ARグラス）があります。最新版には「最新」の表示があります。</p>
+    <div class="brand">
+      <div class="brand-title-row">
+        <img class="brand-logo" src="assets/logo-icon.png" width="40" height="40" alt="AR Vision ロゴ">
+        <h1>ARペースセッター ドキュメント</h1>
+      </div>
+      <p>大分類 →（種別）→ バージョンの順に切り替えて閲覧できます。要件定義書・基本設計書のみ種別タブ（スマホアプリ / ARグラス）があります。最新版には「最新」の表示があります。</p>
+    </div>
   </header>
 
   <div class="nav-stack">
@@ -635,7 +668,7 @@ function navigateToDoc(docLabel, category, version, hashId){
 
 function scrollToEl(el){
   if (!el) return false;
-  if (el.id) history.replaceState(null, '', `#${el.id}`);
+  // URLハッシュは残さない（リロード時に前回ジャンプ先へ飛んでしまうため）
   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return true;
 }
@@ -845,7 +878,6 @@ function addHeadingAnchors(root, prefix){
     anchor.textContent = '#';
     anchor.addEventListener('click', (e) => {
       e.preventDefault();
-      history.replaceState(null, '', `#${id}`);
       heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     heading.prepend(anchor);
@@ -951,12 +983,43 @@ function renderSlideContent(section, slide, token, anchorPrefix){
   }
 }
 
+function persistNav(){
+  try{
+    sessionStorage.setItem('ar-docs-nav', JSON.stringify({ docKey, catKey, verIndex }));
+  } catch (_){}
+}
+
+function restoreNav(){
+  try{
+    const raw = sessionStorage.getItem('ar-docs-nav');
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (!saved?.docKey || !DOCS[saved.docKey]) return false;
+    docKey = saved.docKey;
+    const doc = DOCS[docKey];
+    if (doc.hasCategory){
+      const keys = Object.keys(doc.categories || {});
+      catKey = saved.catKey && doc.categories?.[saved.catKey] ? saved.catKey : (keys[0] || null);
+    } else {
+      catKey = null;
+    }
+    const versions = currentVersions();
+    verIndex = Number.isInteger(saved.verIndex) && saved.verIndex >= 0 && saved.verIndex < versions.length
+      ? saved.verIndex
+      : latestVersionIndex();
+    return true;
+  } catch (_){
+    return false;
+  }
+}
+
 function render(){
   if (imgLightboxEl.classList.contains('is-open')) closeImageLightbox();
   const token = ++renderToken;
   const doc = currentDoc();
   const versions = currentVersions();
   if (verIndex >= versions.length) verIndex = latestVersionIndex();
+  persistNav();
 
   // --- 1階層目: 大分類 ---
   docTabsEl.innerHTML = '';
@@ -1022,18 +1085,17 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight' && verIndex < currentVersions().length - 1){ verIndex++; render(); }
 });
 
-// 初期表示: ディープリンク（screen- / detail- / features）があれば基本設計書へ、なければ先頭タブ
+// 初期表示: ハッシュによる自動ジャンプはしない。前回タブだけ復元する
 (function bootstrap(){
-  const raw = decodeHash(location.hash);
-  if (raw === 'features' || raw.startsWith('screen-') || raw.startsWith('detail-')){
-    pendingScrollId = raw;
-    docKey = '基本設計書';
-    catKey = 'スマホアプリ';
-    verIndex = findVersionIndex(DOCS['基本設計書'], 'スマホアプリ', null);
-    render();
-    return;
+  if (location.hash){
+    history.replaceState(null, '', location.pathname + location.search);
   }
-  selectDoc(DOC_KEYS[0]);
+  pendingScrollId = null;
+  if (restoreNav()){
+    render();
+  } else {
+    selectDoc(DOC_KEYS[0]);
+  }
 })();
 </script>
 
