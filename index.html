@@ -50,9 +50,6 @@
   }
 
   .nav-stack{
-    position:sticky;
-    top:0;
-    z-index:10;
     background:var(--paper);
     border-bottom:1px solid var(--line);
   }
@@ -152,6 +149,10 @@
     color:var(--ink);
     white-space:pre-wrap;
   }
+  .section img,
+  .md-body img{
+    cursor:zoom-in;
+  }
   .section img{
     display:block;
     max-width:100%;
@@ -202,7 +203,7 @@
   .md-body :is(h1,h2,h3,h4,h5),
   .section h3{
     position:relative;
-    scroll-margin-top:120px;
+    scroll-margin-top:32px;
   }
   .heading-anchor{
     position:absolute;
@@ -273,12 +274,16 @@
     display:block;
     max-width:100%;
     height:auto;
-    margin:16px 0;
+    margin:16px auto;
     border:1px solid var(--line);
     border-radius:2px;
   }
+  .md-body img[src*="assets/screens/"]{
+    max-width:min(180px, 36%);
+  }
   .md-body a{ color:var(--accent); }
-  .md-body a[href="#doc-調査書"]{
+  .md-body a[href^="#doc-"],
+  .md-body a[href^="#nav:"]{
     cursor:pointer;
     text-decoration:underline;
   }
@@ -300,6 +305,44 @@
     padding:24px 0;
   }
   .md-status.error{ color:#8B2E2E; }
+
+  #imgLightbox{
+    position:fixed;
+    inset:0;
+    z-index:100;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    background:rgba(28, 32, 39, 0.88);
+    cursor:zoom-out;
+  }
+  #imgLightbox.is-open{ display:flex; }
+  #imgLightbox img{
+    max-width:min(96vw, 1200px);
+    max-height:92vh;
+    width:auto;
+    height:auto;
+    border-radius:4px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.35);
+    cursor:default;
+  }
+  #imgLightboxClose{
+    position:absolute;
+    top:16px;
+    right:16px;
+    width:44px;
+    height:44px;
+    border:none;
+    border-radius:50%;
+    background:rgba(255,255,255,0.92);
+    color:var(--ink);
+    font-size:24px;
+    line-height:1;
+    cursor:pointer;
+  }
+  #imgLightboxClose:hover{ background:#fff; }
+  body.img-lightbox-open{ overflow:hidden; }
 
   .arrows{
     position:fixed;
@@ -361,6 +404,11 @@
     <button id="prevBtn" aria-label="前のバージョン">←</button>
     <button id="nextBtn" aria-label="次のバージョン">→</button>
   </div>
+</div>
+
+<div id="imgLightbox" hidden aria-hidden="true">
+  <button id="imgLightboxClose" type="button" aria-label="拡大表示を閉じる">×</button>
+  <img id="imgLightboxImg" alt="">
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -451,8 +499,15 @@ const DOCS = {
             version: "v1",
             date: "2026-09-04",
             title: "スマホアプリ側 基本設計書",
-            summary: "画面遷移図準拠。S6=ルート／S7=ロック／S8=結果／S10=履歴。起動分岐と画面構成を整理した基本設計初版。",
-            markdown: "基本設計書_スマホアプリ.md"
+            summary: "画面遷移図準拠。S5の時間・距離・ペース自動計算ロジックを含む基本設計初版。",
+            markdown: "スマホアプリ側_基本設計書_v1.md"
+          },
+          {
+            version: "v2",
+            date: "2026-09-05",
+            title: "スマホアプリ側 基本設計書",
+            summary: "確定版。先頭の機能一覧から各画面詳細へジャンプ可能。S8ルート提案・S7ラン結果・S5自動計算ロジックを反映。",
+            markdown: "スマホアプリ側_基本設計書_v2.md"
           }
         ]
       },
@@ -489,6 +544,7 @@ let docKey = DOC_KEYS[0];
 let catKey = null;
 let verIndex = 0;
 let renderToken = 0;
+let pendingScrollId = null;
 
 marked.setOptions({ gfm: true, breaks: false });
 
@@ -539,9 +595,63 @@ function goToDocByLabel(label){
   if (DOCS[label]) selectDoc(label);
 }
 
+function findVersionIndex(doc, category, version){
+  const versions = doc?.hasCategory
+    ? (doc.categories?.[category]?.versions || [])
+    : (doc?.versions || []);
+  if (!version) return Math.max(0, versions.length - 1);
+  const i = versions.findIndex(v => v.version === version);
+  return i >= 0 ? i : Math.max(0, versions.length - 1);
+}
+
+function navigateToDoc(docLabel, category, version, hashId){
+  const doc = DOCS[docLabel];
+  if (!doc) return false;
+  pendingScrollId = hashId || null;
+  docKey = docLabel;
+  if (doc.hasCategory){
+    const keys = Object.keys(doc.categories || {});
+    catKey = category && doc.categories[category] ? category : (keys[0] || null);
+  } else {
+    catKey = null;
+  }
+  verIndex = findVersionIndex(doc, catKey, version);
+  render();
+  return true;
+}
+
+function scrollToId(id){
+  if (!id) return false;
+  const el = document.getElementById(id);
+  if (!el) return false;
+  history.replaceState(null, '', `#${id}`);
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  return true;
+}
+
+function resolveLocalHash(hash, prefix){
+  const raw = String(hash || '').replace(/^#/, '');
+  if (!raw) return null;
+  if (document.getElementById(raw)) return raw;
+  if (prefix){
+    const prefixed = `${prefix}-${raw}`;
+    if (document.getElementById(prefixed)) return prefixed;
+  }
+  return null;
+}
+
+function applyPendingScroll(prefix){
+  const wanted = pendingScrollId || (location.hash ? location.hash.slice(1) : null);
+  if (!wanted) return;
+  const id = resolveLocalHash(wanted, prefix) || (document.getElementById(wanted) ? wanted : null);
+  if (id && scrollToId(id)){
+    pendingScrollId = null;
+  }
+}
+
 async function loadMarkdown(path){
   if (mdCache.has(path)) return mdCache.get(path);
-  const res = await fetch(path);
+  const res = await fetch(path, { cache: 'no-cache' });
   if (!res.ok) throw new Error(`${path} を読み込めませんでした（${res.status}）`);
   let text = await res.text();
   text = text.replace(
@@ -552,11 +662,100 @@ async function loadMarkdown(path){
   return text;
 }
 
-function wireMarkdownLinks(root){
-  root.querySelectorAll('a[href="#doc-調査書"]').forEach(a => {
+function wireMarkdownLinks(root, prefix){
+  root.querySelectorAll('a[href^="#"]').forEach(a => {
+    const href = a.getAttribute('href') || '';
+
+    if (href === '#doc-調査書'){
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        goToDocByLabel('調査書');
+      });
+      return;
+    }
+
+    if (href.startsWith('#nav:')){
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const parts = href.slice(5).split(':');
+        const docLabel = parts[0] || '';
+        const category = parts[1] || null;
+        const version = parts[2] || null;
+        const slug = parts.slice(3).join(':');
+        const fullHash = slug
+          ? [docLabel, category, version, slug].filter(Boolean).join('-')
+          : null;
+        navigateToDoc(docLabel, category, version, fullHash);
+      });
+      return;
+    }
+
+    if (href.startsWith('#doc-')){
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        goToDocByLabel(href.slice(5));
+      });
+      return;
+    }
+
     a.addEventListener('click', (e) => {
+      const id = resolveLocalHash(href, prefix);
+      if (!id) return;
       e.preventDefault();
-      goToDocByLabel('調査書');
+      scrollToId(id);
+    });
+  });
+}
+
+const imgLightboxEl = document.getElementById('imgLightbox');
+const imgLightboxImgEl = document.getElementById('imgLightboxImg');
+const imgLightboxCloseEl = document.getElementById('imgLightboxClose');
+
+function openImageLightbox(src, alt){
+  imgLightboxImgEl.src = src;
+  imgLightboxImgEl.alt = alt || '';
+  imgLightboxEl.hidden = false;
+  imgLightboxEl.classList.add('is-open');
+  imgLightboxEl.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('img-lightbox-open');
+  imgLightboxCloseEl.focus();
+}
+
+function closeImageLightbox(){
+  imgLightboxEl.classList.remove('is-open');
+  imgLightboxEl.hidden = true;
+  imgLightboxEl.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('img-lightbox-open');
+  imgLightboxImgEl.src = '';
+}
+
+imgLightboxEl.addEventListener('click', (e) => {
+  if (e.target === imgLightboxEl) closeImageLightbox();
+});
+imgLightboxImgEl.addEventListener('click', (e) => e.stopPropagation());
+imgLightboxCloseEl.addEventListener('click', closeImageLightbox);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && imgLightboxEl.classList.contains('is-open')){
+    closeImageLightbox();
+  }
+});
+
+function wireZoomableImages(root){
+  if (!root) return;
+  root.querySelectorAll('.md-body img, .section img').forEach((img) => {
+    if (img.dataset.zoomable) return;
+    img.dataset.zoomable = 'true';
+    img.tabIndex = 0;
+    img.setAttribute('role', 'button');
+    const label = img.alt ? `${img.alt}を拡大表示` : '画像を拡大表示';
+    img.setAttribute('aria-label', label);
+    const open = () => openImageLightbox(img.currentSrc || img.src, img.alt);
+    img.addEventListener('click', open);
+    img.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        open();
+      }
     });
   });
 }
@@ -630,6 +829,7 @@ function renderSections(sectionEl, slide, anchorPrefix){
     sectionEl.appendChild(wrap);
   });
   addHeadingAnchors(sectionEl, anchorPrefix);
+  wireZoomableImages(sectionEl);
 }
 
 async function fillMarkdown(container, path, token, anchorPrefix){
@@ -646,13 +846,10 @@ async function fillMarkdown(container, path, token, anchorPrefix){
     body.className = 'md-body';
     body.innerHTML = marked.parse(md);
     container.appendChild(body);
-    wireMarkdownLinks(body);
     addHeadingAnchors(body, anchorPrefix);
-
-    if (location.hash){
-      const target = document.getElementById(location.hash.slice(1));
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    wireMarkdownLinks(body, anchorPrefix);
+    wireZoomableImages(body);
+    applyPendingScroll(anchorPrefix);
   } catch (err){
     if (token !== renderToken) return;
     status.classList.add('error');
@@ -689,6 +886,7 @@ function renderSlideContent(section, slide, token, anchorPrefix){
 }
 
 function render(){
+  if (imgLightboxEl.classList.contains('is-open')) closeImageLightbox();
   const token = ++renderToken;
   const doc = currentDoc();
   const versions = currentVersions();
