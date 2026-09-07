@@ -201,9 +201,12 @@
   }
 
   .md-body :is(h1,h2,h3,h4,h5),
-  .section h3{
+  .section h3,
+  .md-body a[id^="screen-"],
+  .md-body a[id^="detail-"],
+  .md-body a#features{
     position:relative;
-    scroll-margin-top:32px;
+    scroll-margin-top:72px;
   }
   .heading-anchor{
     position:absolute;
@@ -620,31 +623,59 @@ function navigateToDoc(docLabel, category, version, hashId){
   return true;
 }
 
-function scrollToId(id){
-  if (!id) return false;
-  const el = document.getElementById(id);
+function scrollToEl(el){
   if (!el) return false;
-  history.replaceState(null, '', `#${id}`);
+  if (el.id) history.replaceState(null, '', `#${el.id}`);
   el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return true;
 }
 
-function resolveLocalHash(hash, prefix){
-  const raw = String(hash || '').replace(/^#/, '');
+function scrollToId(id){
+  if (!id) return false;
+  return scrollToEl(document.getElementById(id));
+}
+
+function decodeHash(hash){
+  let raw = String(hash || '').replace(/^#/, '');
+  if (!raw) return '';
+  try { raw = decodeURIComponent(raw); } catch (_) {}
+  return raw;
+}
+
+function findHashTarget(hash, prefix, root){
+  const raw = decodeHash(hash);
   if (!raw) return null;
-  if (document.getElementById(raw)) return raw;
-  if (prefix){
-    const prefixed = `${prefix}-${raw}`;
-    if (document.getElementById(prefixed)) return prefixed;
+  const scope = root || document;
+  const candidates = [raw];
+  if (prefix) candidates.push(`${prefix}-${raw}`);
+
+  for (const id of candidates){
+    if (scope.querySelector){
+      const el = scope.querySelector(`[id="${CSS.escape(id)}"]`);
+      if (el) return el;
+    }
+    const global = document.getElementById(id);
+    if (global) return global;
+  }
+
+  if (scope.querySelectorAll){
+    for (const el of scope.querySelectorAll('[id]')){
+      if (el.id === raw || el.id.endsWith(`-${raw}`)) return el;
+    }
   }
   return null;
 }
 
-function applyPendingScroll(prefix){
+function resolveLocalHash(hash, prefix, root){
+  const el = findHashTarget(hash, prefix, root);
+  return el ? el.id : null;
+}
+
+function applyPendingScroll(prefix, root){
   const wanted = pendingScrollId || (location.hash ? location.hash.slice(1) : null);
   if (!wanted) return;
-  const id = resolveLocalHash(wanted, prefix) || (document.getElementById(wanted) ? wanted : null);
-  if (id && scrollToId(id)){
+  const el = findHashTarget(wanted, prefix, root);
+  if (el && scrollToEl(el)){
     pendingScrollId = null;
   }
 }
@@ -699,10 +730,16 @@ function wireMarkdownLinks(root, prefix){
     }
 
     a.addEventListener('click', (e) => {
-      const id = resolveLocalHash(href, prefix);
-      if (!id) return;
       e.preventDefault();
-      scrollToId(id);
+      const el = findHashTarget(href, prefix, root);
+      if (el){
+        scrollToEl(el);
+        return;
+      }
+      // fallback: active slide only
+      const active = document.querySelector('.slide.active .md-body');
+      const fallback = findHashTarget(href, prefix, active);
+      if (fallback) scrollToEl(fallback);
     });
   });
 }
@@ -803,6 +840,19 @@ function addHeadingAnchors(root, prefix){
   });
 }
 
+/* Markdown内の <a id="screen-..."> を直後の見出しへ移し、ジャンプ先を安定させる */
+function promoteJumpAnchors(root){
+  root.querySelectorAll('a[id="features"], a[id^="screen-"], a[id^="detail-"]').forEach((a) => {
+    const heading = a.nextElementSibling;
+    if (!heading || !/^H[1-6]$/.test(heading.tagName)) return;
+    const jumpId = a.id;
+    heading.id = jumpId;
+    const mark = heading.querySelector('.heading-anchor');
+    if (mark) mark.setAttribute('href', `#${jumpId}`);
+    a.remove();
+  });
+}
+
 /* スライド1件分の中身（sections）描画 — 既存ロジックを維持 */
 function renderSections(sectionEl, slide, anchorPrefix){
   (slide.sections || []).forEach(sec => {
@@ -847,9 +897,10 @@ async function fillMarkdown(container, path, token, anchorPrefix){
     body.innerHTML = marked.parse(md);
     container.appendChild(body);
     addHeadingAnchors(body, anchorPrefix);
+    promoteJumpAnchors(body);
     wireMarkdownLinks(body, anchorPrefix);
     wireZoomableImages(body);
-    applyPendingScroll(anchorPrefix);
+    applyPendingScroll(anchorPrefix, body);
   } catch (err){
     if (token !== renderToken) return;
     status.classList.add('error');
