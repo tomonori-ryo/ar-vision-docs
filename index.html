@@ -575,7 +575,15 @@ function latestVersionIndex(){
   return Math.max(0, currentVersions().length - 1);
 }
 
+function clearStaleLocationHash(){
+  if (pendingScrollId) return;
+  if (location.hash){
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+}
+
 function selectDoc(key){
+  clearStaleLocationHash();
   docKey = key;
   const keys = categoryKeys();
   catKey = currentDoc().hasCategory ? (keys[0] || null) : null;
@@ -584,12 +592,14 @@ function selectDoc(key){
 }
 
 function selectCategory(key){
+  clearStaleLocationHash();
   catKey = key;
   verIndex = latestVersionIndex();
   render();
 }
 
 function selectVersion(i){
+  clearStaleLocationHash();
   verIndex = i;
   render();
 }
@@ -672,7 +682,9 @@ function resolveLocalHash(hash, prefix, root){
 }
 
 function applyPendingScroll(prefix, root){
-  const wanted = pendingScrollId || (location.hash ? location.hash.slice(1) : null);
+  // タブ切替のたびに location.hash を見ると、前回ジャンプ先（例: screen-s6）へ再度飛んでしまう。
+  // 明示的な pendingScrollId（目次リンク・ディープリンク）のときだけスクロールする。
+  const wanted = pendingScrollId;
   if (!wanted) return;
   const el = findHashTarget(wanted, prefix, root);
   if (el && scrollToEl(el)){
@@ -900,7 +912,10 @@ async function fillMarkdown(container, path, token, anchorPrefix){
     promoteJumpAnchors(body);
     wireMarkdownLinks(body, anchorPrefix);
     wireZoomableImages(body);
-    applyPendingScroll(anchorPrefix, body);
+    const slide = container.closest('.slide');
+    if (slide?.classList.contains('active')){
+      applyPendingScroll(anchorPrefix, body);
+    }
   } catch (err){
     if (token !== renderToken) return;
     status.classList.add('error');
@@ -1007,8 +1022,19 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight' && verIndex < currentVersions().length - 1){ verIndex++; render(); }
 });
 
-// 初期表示: 大分類の一番左
-selectDoc(DOC_KEYS[0]);
+// 初期表示: ディープリンク（screen- / detail- / features）があれば基本設計書へ、なければ先頭タブ
+(function bootstrap(){
+  const raw = decodeHash(location.hash);
+  if (raw === 'features' || raw.startsWith('screen-') || raw.startsWith('detail-')){
+    pendingScrollId = raw;
+    docKey = '基本設計書';
+    catKey = 'スマホアプリ';
+    verIndex = findVersionIndex(DOCS['基本設計書'], 'スマホアプリ', null);
+    render();
+    return;
+  }
+  selectDoc(DOC_KEYS[0]);
+})();
 </script>
 
 </body>
