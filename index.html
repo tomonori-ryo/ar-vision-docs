@@ -379,8 +379,11 @@
   .md-body img[src*="assets/screens/"]{
     max-width:min(180px, 36%);
   }
-  .md-body img[src*="ar-hud-mock"]{
-    max-width:min(640px, 92%);
+  .md-body img[src*="ar-hud-mock"],
+  .md-body img[src*="ar-core-pipeline"],
+  .md-body img[src*="ar-gaze-vs-travel"],
+  .md-body img[src*="ar-floor-latch"]{
+    max-width:min(720px, 96%);
   }
   .md-body a{ color:var(--accent); }
   .md-body a[href^="#doc-"],
@@ -688,6 +691,13 @@ const DOCS = {
             title: "ARグラス側 基本設計書",
             summary: "v1を引き継ぎ、モック画像をもとにAR HUDレイアウトとアバター表現（半透明＋シェブロン軌跡）を具体化。",
             markdown: "ARグラス側_基本設計書_v2.md"
+          },
+          {
+            version: "v3",
+            date: "2026-09-10",
+            title: "ARグラス側 基本設計書",
+            summary: "UaaL統合アーキテクチャとアバター挙動のコア処理（自己位置・進行方向・相対距離・描画制御、工夫①②）を反映。",
+            markdown: "ARグラス側_基本設計書_v3.md"
           }
         ]
       }
