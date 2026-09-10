@@ -29,9 +29,6 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  #app{ display:none; }
-  body.is-unlocked #app{ display:block; }
-
   #siteGate{
     min-height:100vh;
     display:flex;
@@ -382,6 +379,9 @@
   .md-body img[src*="assets/screens/"]{
     max-width:min(180px, 36%);
   }
+  .md-body img[src*="ar-hud-mock"]{
+    max-width:min(640px, 92%);
+  }
   .md-body a{ color:var(--accent); }
   .md-body a[href^="#doc-"],
   .md-body a[href^="#nav:"]{
@@ -680,7 +680,14 @@ const DOCS = {
             date: "2026-09-04",
             title: "ARグラス側 基本設計書",
             summary: "要件定義書（ARグラス側）の機能を、Unity（C#）＋ARKitの構成でどう実現するかの粗い役割分担。アジャイル初版。",
-            markdown: "基本設計書_ARグラス.md"
+            markdown: "ARグラス側_基本設計書_v1.md"
+          },
+          {
+            version: "v2",
+            date: "2026-09-10",
+            title: "ARグラス側 基本設計書",
+            summary: "v1を引き継ぎ、モック画像をもとにAR HUDレイアウトとアバター表現（半透明＋シェブロン軌跡）を具体化。",
+            markdown: "ARグラス側_基本設計書_v2.md"
           }
         ]
       }
