@@ -109,15 +109,114 @@
     padding:48px 0 24px;
     border-bottom:1px solid var(--line);
   }
+  .header-bar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+  }
   .brand{
     display:flex;
     flex-direction:column;
     gap:8px;
+    min-width:0;
+    flex:1;
   }
   .brand-title-row{
     display:flex;
     align-items:center;
     gap:12px;
+  }
+
+  /* サイト外側の入口（ドキュメントタブとは別） */
+  .site-menu{
+    position:relative;
+    flex:0 0 auto;
+    margin-top:2px;
+  }
+  .site-menu-btn{
+    width:40px;
+    height:40px;
+    padding:0;
+    border:1px solid var(--line);
+    border-radius:4px;
+    background:var(--paper-raised);
+    color:var(--ink);
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .site-menu-btn:hover{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+  }
+  .site-menu-btn[aria-expanded="true"]{
+    border-color:var(--accent);
+    background:var(--accent);
+    color:#fff;
+  }
+  .site-menu-btn:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+  .site-menu-icon{
+    display:block;
+    width:18px;
+    height:12px;
+    position:relative;
+  }
+  .site-menu-icon::before,
+  .site-menu-icon::after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    height:2px;
+    border-radius:1px;
+    background:currentColor;
+  }
+  .site-menu-icon span{
+    position:absolute;
+    left:0;
+    right:0;
+    top:5px;
+    height:2px;
+    border-radius:1px;
+    background:currentColor;
+  }
+  .site-menu-icon::before{ top:0; }
+  .site-menu-icon::after{ bottom:0; }
+  .site-menu-panel{
+    position:absolute;
+    top:calc(100% + 8px);
+    right:0;
+    z-index:40;
+    min-width:200px;
+    padding:6px;
+    background:#1C2027;
+    border:1px solid #2e3440;
+    border-radius:6px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.18);
+  }
+  .site-menu-panel[hidden]{ display:none; }
+  .site-menu-panel a{
+    display:block;
+    padding:10px 12px;
+    border-radius:4px;
+    color:#F6F4EF;
+    text-decoration:none;
+    font-size:14px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .site-menu-panel a:hover{
+    background:var(--accent);
+    color:#fff;
+  }
+  .site-menu-panel a:focus-visible{
+    outline:2px solid #8eb0e8;
+    outline-offset:1px;
   }
   .brand-logo{
     flex:0 0 auto;
@@ -482,10 +581,12 @@
 
   @media (max-width:600px){
     header{ padding:32px 0 20px; }
+    .header-bar{ gap:10px; }
     .brand-title-row{ gap:10px; }
     .brand-logo{ width:32px; height:32px; }
     .brand-title-row h1{ font-size:22px; }
     header p{ padding-left:42px; }
+    .site-menu-btn{ width:36px; height:36px; }
     .slide > h2{ font-size:20px; }
     .md-body h1{ font-size:22px; }
     .arrows{ right:16px; bottom:16px; }
@@ -509,12 +610,43 @@
 
 <div id="app">
   <header>
-    <div class="brand">
-      <div class="brand-title-row">
-        <img class="brand-logo" src="assets/logo-icon.png" width="40" height="40" alt="AR Vision ロゴ">
-        <h1>ARペースセッター ドキュメント</h1>
+    <div class="header-bar">
+      <div class="brand">
+        <div class="brand-title-row">
+          <img class="brand-logo" src="assets/logo-icon.png" width="40" height="40" alt="AR Vision ロゴ">
+          <h1>ARペースセッター ドキュメント</h1>
+        </div>
+        <p>大分類 →（種別）→ バージョンの順に切り替えて閲覧できます。要件定義書・基本設計書のみ種別タブ（スマホアプリ / ARグラス）があります。最新版には「最新」の表示があります。</p>
       </div>
-      <p>大分類 →（種別）→ バージョンの順に切り替えて閲覧できます。要件定義書・基本設計書のみ種別タブ（スマホアプリ / ARグラス）があります。最新版には「最新」の表示があります。</p>
+
+      <!-- サイト外側の入口（企画書〜基本設計書のタブとは別） -->
+      <div class="site-menu" id="siteMenu">
+        <button
+          type="button"
+          id="siteMenuBtn"
+          class="site-menu-btn"
+          aria-label="サイトメニューを開く"
+          aria-expanded="false"
+          aria-controls="siteMenuPanel"
+        >
+          <span class="site-menu-icon" aria-hidden="true"><span></span></span>
+        </button>
+        <nav id="siteMenuPanel" class="site-menu-panel" hidden aria-label="サイトメニュー">
+          <!-- TODO: URLを入れる — スケジュール表 -->
+          <a href="https://app.notion.com/p/216327e5a92b807d8bfae7c79cde3b9a?v=216327e5a92b818f937f000cfe9647ab" target="_blank" rel="noopener noreferrer">スケジュール表</a>
+          <!-- TODO: URLを入れる — 課題管理表 -->
+  
+          <a href="https://app.notion.com/p/216327e5a92b80d1a0c7f00a6703b0a2?v=3d4327e5a92b8095bfa4000c5cccc39c&source=copy_link" target="_blank" rel="noopener noreferrer">課題管理表</a>
+          <!-- TODO: URLを入れる — 作業報告 -->
+          
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLSeFBFZA-gCZRED_IsRT0YIaRlY-Yy7k41-rxb-SjCiYmcReAw/viewform?usp=dialog" target="_blank" rel="noopener noreferrer">作業報告</a>
+          <!-- TODO: URLを入れる — 週報 -->
+          
+          <a href="https://forms.gle/wmA8UWkMYd2gfjdn7" target="_blank" rel="noopener noreferrer">週報</a>
+          <a href="https://drive.google.com/drive/folders/1nyPhWOKptsPtuy_O8hWy_Jpr2a4XKJ-L" target="_blank" rel="noopener noreferrer">貢献度管理シート</a>
+          <a href="https://docs.google.com/spreadsheets/d/1EJwDBhQu9I58sp7OJkqE8kiW7GxQM5AO6y32K-AtKW8/edit?resourcekey=&gid=432830667#gid=432830667&fvid=1212283974" target="_blank" rel="noopener noreferrer">作業報告集計表</a>
+          <a href="https://docs.google.com/spreadsheets/d/1t_JTAgfYmbMfPdqOAnOixhChZpOjZVBRZ7TrzK8q118/edit?gid=438009994#gid=438009994" target="_blank" rel="noopener noreferrer">結合テストリスト</a>
+      </div>
     </div>
   </header>
 
@@ -574,6 +706,37 @@
   if (!document.body.classList.contains('is-unlocked')){
     setTimeout(() => input.focus(), 0);
   }
+})();
+</script>
+<script>
+(function(){
+  const root = document.getElementById('siteMenu');
+  const btn = document.getElementById('siteMenuBtn');
+  const panel = document.getElementById('siteMenuPanel');
+  if (!root || !btn || !panel) return;
+
+  function setOpen(open){
+    panel.hidden = !open;
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.setAttribute('aria-label', open ? 'サイトメニューを閉じる' : 'サイトメニューを開く');
+  }
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setOpen(panel.hidden);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (panel.hidden) return;
+    if (!root.contains(e.target)) setOpen(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panel.hidden){
+      setOpen(false);
+      btn.focus();
+    }
+  });
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
